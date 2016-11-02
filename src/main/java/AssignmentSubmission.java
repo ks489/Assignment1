@@ -8,6 +8,8 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 
+import br.usp.each.saeg.asm.defuse.Variable;
+import util.DataFlowAnalysis;
 import util.DominanceTreeGenerator;
 import util.cfg.CFGExtractor;
 import util.cfg.Graph;
@@ -15,6 +17,7 @@ import util.cfg.Node;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,7 +91,105 @@ public class AssignmentSubmission implements Slicer {
         //REPLACE THIS METHOD BODY WITH YOUR OWN CODE
         return false;
     }
+    
+    public boolean isDataDepence() {
+    	Graph ddg = new Graph();
+    	DataFlowAnalysis dfa = new DataFlowAnalysis();
+    	try {
+    		System.out.println("Starting dfa definedBy");
+	    	for (Node node : cfg.getNodes()) {
+				AbstractInsnNode abNode = node.getInstruction();
+				//System.out.println("AbstractNode = " + abNode);
+				//Get Written Variables
+				//System.out.println("1");
+				//System.out.println("Node " + abNode);
+				//System.out.println("Node " + node);
+				//System.out.println("Write");
+				Collection<Variable> definedVariables = dfa.definedBy("/java/lang/String.class", targetMethod, abNode);
+				
+				if(!definedVariables.isEmpty()){
+					System.out.println("Write Variable " + definedVariables);
+					System.out.println("Node " + abNode);
+					System.out.println("Node " + node);
+				}
+				//System.out.println("Read");
+				Collection<Variable> usedVariables = dfa.usedBy("/java/lang/String.class", targetMethod, abNode);
+				
+				if(!usedVariables.isEmpty()){
+					//System.out.println("Read Variables " + usedVariables);
+				}
+				for (Variable variable : definedVariables) {
+					//System.out.println("Defined Variable = " + variable + " For Abstract " + abNode);
+					//System.out.println("Variables = " + variable.getVariables() + " For Abstract " + abNode);
+					/*for (Variable variable1 : variable.getVariables()) {
+						System.out.println("This " + variable1);
+						System.out.println("Type " + variable1.type);
+					}*/
+					//System.out.println(variable.type);
+					
+					
+									
+				}
+				ddg.addNode(node);
+				//System.out.println("Read Variables");
+				//Get Read Variables
+				//Collection<Variable> usedVariables = dfa.usedBy("/java/lang/String.class", targetMethod, abNode);
+				
+				//if(!usedVariables.isEmpty()){
+					//System.out.println(abNode);
+					//System.out.println(usedVariables);
+				//}
 
+			}
+    	} catch (AnalyzerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        //dfa.definedBy("/java/lang/String.class", targetMethod, ALOAD1)
+        return false;
+    }
+    //My Test Method
+    public boolean isDataDepence1() {
+    	Graph ddg = new Graph();
+    	DataFlowAnalysis dfa = new DataFlowAnalysis();
+    	try {
+    		System.out.println("Starting dfa definedBy");
+	    	for (Node node : cfg.getNodes()) {
+				AbstractInsnNode abNode = node.getInstruction();
+				//System.out.println("AbstractNode = " + abNode);
+				//Get Written Variables
+				//System.out.println("1");
+				Collection<Variable> definedVariables = dfa.definedBy("/java/lang/String.class", targetMethod, abNode);
+				for (Variable variable : definedVariables) {
+					//System.out.println("Defined Variable = " + variable + " For Abstract " + abNode);
+					//System.out.println("Variables = " + variable.getVariables() + " For Abstract " + abNode);
+					/*for (Variable variable1 : variable.getVariables()) {
+						System.out.println("This " + variable1);
+						System.out.println("Type " + variable1.type);
+					}*/
+					//System.out.println(variable.type);
+									
+				}
+				Node writeNode = new Node(abNode);
+				ddg.addNode(writeNode);
+				//System.out.println("Read Variables");
+				//Get Read Variables
+				Collection<Variable> usedVariables = dfa.usedBy("/java/lang/String.class", targetMethod, abNode);
+				
+				if(!usedVariables.isEmpty()){
+					System.out.println(abNode);
+					System.out.println(usedVariables);
+				}
+
+			}
+    	} catch (AnalyzerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        //dfa.definedBy("/java/lang/String.class", targetMethod, ALOAD1)
+        return false;
+    }
+    
     /**
      * Returns true if a is dependent upon b and false otherwise.
      *
@@ -204,6 +305,7 @@ public class AssignmentSubmission implements Slicer {
         return null;
     }
     
+    //Custom internal method helpers
     //Adding augmented control flow start node
     private void AddStartNode(Graph graph){
     	Node node = new Node("start");    	
