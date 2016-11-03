@@ -18,17 +18,17 @@ public class TestClass {
 		AssignmentSubmission assignment = new AssignmentSubmission("/java/lang/String.class", "trim()Ljava/lang/String;");
 		
 		//This is for Control Dependency Graph
-		//ComputeControlDependency(assignment);
+		ComputeControlDependency(assignment);
 		
 		//This for the Data Dependency Graph
-		ComputeDataDependency(assignment);
+		//ComputeDataDependency(assignment);
 		System.out.println("Ending AssignmentSubmission");
 	}
 	
 	private static void ComputeControlDependency(AssignmentSubmission assignment){
 		System.out.println("-----Computing Control Dependency-----");
 		System.out.println(assignment.cfg);
-		assignment.isControlDependentUpon();
+		assignment.isControlDependentUpon1();
 		for (util.cfg.Node node : assignment.cfg.getNodes()) {
 			//System.out.println(assignment.isControlDependentUpon(node.getInstruction(), node.getInstruction().getNext()));
 			//System.out.println(node);

@@ -17,6 +17,7 @@ import util.cfg.Node;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -95,6 +96,10 @@ public class AssignmentSubmission implements Slicer {
     public boolean isDataDepence() {
     	Graph ddg = new Graph();
     	DataFlowAnalysis dfa = new DataFlowAnalysis();
+    	
+    	Map<Node, List<Variable>> writeMap = new HashMap<Node, List<Variable>>();
+    	Map<Node, List<Variable>> readMap = new HashMap<Node, List<Variable>>();
+    	
     	try {
     		System.out.println("Starting dfa definedBy");
 	    	for (Node node : cfg.getNodes()) {
@@ -105,43 +110,61 @@ public class AssignmentSubmission implements Slicer {
 				//System.out.println("Node " + abNode);
 				//System.out.println("Node " + node);
 				//System.out.println("Write");
-				Collection<Variable> definedVariables = dfa.definedBy("/java/lang/String.class", targetMethod, abNode);
-				
-				if(!definedVariables.isEmpty()){
-					System.out.println("Write Variable " + definedVariables);
-					System.out.println("Node " + abNode);
-					System.out.println("Node " + node);
-				}
-				//System.out.println("Read");
-				Collection<Variable> usedVariables = dfa.usedBy("/java/lang/String.class", targetMethod, abNode);
-				
-				if(!usedVariables.isEmpty()){
-					//System.out.println("Read Variables " + usedVariables);
-				}
-				for (Variable variable : definedVariables) {
-					//System.out.println("Defined Variable = " + variable + " For Abstract " + abNode);
-					//System.out.println("Variables = " + variable.getVariables() + " For Abstract " + abNode);
-					/*for (Variable variable1 : variable.getVariables()) {
-						System.out.println("This " + variable1);
-						System.out.println("Type " + variable1.type);
-					}*/
-					//System.out.println(variable.type);
+				if(abNode != null){
+					Collection<Variable> definedVariables = dfa.definedBy("/java/lang/String.class", targetMethod, abNode);
 					
+					if(!definedVariables.isEmpty()){
+						//System.out.println("Write " + node + "-" + definedVariables);
+						List<Variable> writeVariableList = new ArrayList<Variable>();
+						for (Variable variable : definedVariables) {
+							writeVariableList.add(variable);
+						}
+						writeMap.put(node, writeVariableList);
+						ddg.addNode(node);
+						//System.out.println("Write Node " + abNode);
+						//System.out.println("Write Node " + node);
+					}
+					//System.out.println("Read");
+					Collection<Variable> usedVariables = dfa.usedBy("/java/lang/String.class", targetMethod, abNode);
 					
-									
+					if(!usedVariables.isEmpty()){
+						//System.out.println("Read " + node + "-" + usedVariables);
+						List<Variable> readVariableList = new ArrayList<Variable>();
+						for (Variable variable : usedVariables) {
+							readVariableList.add(variable);
+						}
+						readMap.put(node, readVariableList);
+						//System.out.println("Read Node " + abNode);
+						//System.out.println("Read Node " + node);
+						
+					}
+					
+					//ddg.addNode(node);
 				}
-				ddg.addNode(node);
-				//System.out.println("Read Variables");
-				//Get Read Variables
-				//Collection<Variable> usedVariables = dfa.usedBy("/java/lang/String.class", targetMethod, abNode);
 				
-				//if(!usedVariables.isEmpty()){
-					//System.out.println(abNode);
-					//System.out.println(usedVariables);
-				//}
-
 			}
-    	} catch (AnalyzerException e) {
+	    	System.out.println(writeMap);
+			System.out.println(readMap);
+			for (Node writeNode : writeMap.keySet()) {
+				List<Variable> writeList = writeMap.get(writeNode);
+				for (Variable variable : writeList) {
+					for (Node readNode : readMap.keySet()) {
+						for (Variable variable2 : writeList) {
+							if(variable == variable2){
+								if(writeNode != readNode){
+									ddg.addNode(readNode);
+									ddg.addEdge(writeNode, readNode);
+								}
+								
+							}
+							
+						}
+					}
+				}
+			}
+			System.out.println(ddg);
+    	
+    	} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -293,6 +316,83 @@ public class AssignmentSubmission implements Slicer {
         return false;
     }
 
+    public boolean isControlDependentUpon1() {
+    	
+    	try {
+    		AddStartNode(cfg);
+			DominanceTreeGenerator dtg = new DominanceTreeGenerator(cfg);
+			Graph postDominatorGraph = dtg.postDominatorTree();
+			
+			//Get Branches
+			Map<Node, Node> branches = new HashMap <Node, Node>();
+			System.out.println("manual print");
+			for (Node node : cfg.getNodes()) {
+				for (Node succ: cfg.getSuccessors(node)) {
+					if(cfg.isDecisionEdge(node, succ)){
+						branches.put(node, succ);
+					}
+				}
+			}
+			
+			System.out.println("Starting the post dominance");
+			
+			System.out.println(postDominatorGraph.getNodes());
+			for (Node postDom : postDominatorGraph.getNodes()) { //b
+				for (Node node: postDominatorGraph.getSuccessors(postDom)) { //a
+					//System.out.println(postDom.toString()+"->"+node.toString()+"\n");
+					
+					
+				}
+			}
+			
+			//Control Dependence Graph
+			Graph cdg = new Graph();
+			System.out.println("Nodes");
+			System.out.println(postDominatorGraph.getNodes());
+			boolean addToGraph = false;
+			for(Map.Entry<Node, Node> branch : branches.entrySet()){
+				Node leastCommonNode;
+				if(branch.getKey().toString().equals("start")){
+					leastCommonNode = branch.getKey();
+				}else{
+					leastCommonNode = postDominatorGraph.getLeastCommonAncestor(branch.getKey(), branch.getValue());
+				}
+				
+				
+				//Node leastCommonNode = postDominatorGraph.getLeastCommonAncestor(branch.getValue(), branch.getKey());
+				String dotString = null;
+				for (Node node : postDominatorGraph.getNodes()) {
+					for (Node succ: postDominatorGraph.getPredecessors(node)) {
+						dotString+=node.toString()+"->"+succ.toString()+"\n";						
+						//From the b root of the branch set
+						if(node.equals(branch.getValue())){
+							addToGraph = false;
+						}else if(node.equals(leastCommonNode)){
+							addToGraph = true;
+						}
+						if(addToGraph){
+							//if(leastCommonNode.equals(branch.getKey())){
+								
+							//}
+							cdg.addNode(node);
+							cdg.addNode(succ);
+							cdg.addEdge(node, succ);
+						}
+						
+					}
+				}
+				System.out.println(dotString);
+			}
+			System.out.println("Control Dependency Graph");
+			System.out.println(cdg);
+			
+			
+		} catch (IOException | AnalyzerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        return false;
+    }
 
     /**
      * Should return a backward slice on the criterion statement (for all variables).
@@ -312,5 +412,7 @@ public class AssignmentSubmission implements Slicer {
     	graph.addNode(node);
     	graph.addEdge(node, graph.getEntry());
     	graph.addEdge(node, graph.getExit());
+    	//graph.addEdge(graph.getEntry(), node);
+    	//graph.addEdge(graph.getExit(), node);
     }
 }
