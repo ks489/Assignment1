@@ -18,10 +18,10 @@ public class TestClass {
 		AssignmentSubmission assignment = new AssignmentSubmission("/java/lang/String.class", "trim()Ljava/lang/String;");
 		
 		//This is for Control Dependency Graph
-		ComputeControlDependency(assignment);
+		//ComputeControlDependency(assignment);
 		
 		//This for the Data Dependency Graph
-		//ComputeDataDependency(assignment);
+		ComputeDataDependency(assignment);
 		System.out.println("Ending AssignmentSubmission");
 	}
 	

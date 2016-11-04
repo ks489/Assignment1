@@ -92,7 +92,6 @@ public class AssignmentSubmission implements Slicer {
         //REPLACE THIS METHOD BODY WITH YOUR OWN CODE
         return false;
     }
-    
     public boolean isDataDepence() {
     	Graph ddg = new Graph();
     	DataFlowAnalysis dfa = new DataFlowAnalysis();
@@ -104,114 +103,68 @@ public class AssignmentSubmission implements Slicer {
     		System.out.println("Starting dfa definedBy");
 	    	for (Node node : cfg.getNodes()) {
 				AbstractInsnNode abNode = node.getInstruction();
-				//System.out.println("AbstractNode = " + abNode);
-				//Get Written Variables
-				//System.out.println("1");
-				//System.out.println("Node " + abNode);
-				//System.out.println("Node " + node);
-				//System.out.println("Write");
 				if(abNode != null){
 					Collection<Variable> definedVariables = dfa.definedBy("/java/lang/String.class", targetMethod, abNode);
 					
 					if(!definedVariables.isEmpty()){
-						//System.out.println("Write " + node + "-" + definedVariables);
 						List<Variable> writeVariableList = new ArrayList<Variable>();
 						for (Variable variable : definedVariables) {
 							writeVariableList.add(variable);
 						}
 						writeMap.put(node, writeVariableList);
 						ddg.addNode(node);
-						//System.out.println("Write Node " + abNode);
-						//System.out.println("Write Node " + node);
 					}
-					//System.out.println("Read");
+
 					Collection<Variable> usedVariables = dfa.usedBy("/java/lang/String.class", targetMethod, abNode);
 					
 					if(!usedVariables.isEmpty()){
-						//System.out.println("Read " + node + "-" + usedVariables);
+
 						List<Variable> readVariableList = new ArrayList<Variable>();
 						for (Variable variable : usedVariables) {
 							readVariableList.add(variable);
 						}
 						readMap.put(node, readVariableList);
-						//System.out.println("Read Node " + abNode);
-						//System.out.println("Read Node " + node);
-						
 					}
-					
-					//ddg.addNode(node);
-				}
-				
+				}				
 			}
-	    	System.out.println(writeMap);
-			System.out.println(readMap);
+	    	//System.out.println(writeMap);
+			//System.out.println(readMap);
 			for (Node writeNode : writeMap.keySet()) {
-				List<Variable> writeList = writeMap.get(writeNode);
-				for (Variable variable : writeList) {
-					for (Node readNode : readMap.keySet()) {
-						for (Variable variable2 : writeList) {
-							if(variable == variable2){
-								if(writeNode != readNode){
-									ddg.addNode(readNode);
-									ddg.addEdge(writeNode, readNode);
+				for (Node readNode : cfg.getNodes()) {
+					AbstractInsnNode abNode = readNode.getInstruction();
+					if(abNode != null){
+						Collection<Variable> usedVariables = dfa.usedBy("/java/lang/String.class", targetMethod, abNode);
+						
+						if(!usedVariables.isEmpty()){
+
+							List<Variable> readVariableList = new ArrayList<Variable>();
+							for (Variable readVariable : usedVariables) {
+								List<Variable> writeList = writeMap.get(writeNode);
+								for (Variable writeVariable : writeList) {
+									
+									if(writeVariable.equals(readVariable)){
+										if(!writeNode.equals(readNode)){
+											ddg.addNode(writeNode);
+											ddg.addNode(readNode);
+											ddg.addEdge(writeNode, readNode);
+										}										
+									}
 								}
-								
-							}
-							
+							}							
 						}
-					}
-				}
+					}					
+				}				
 			}
+			
 			System.out.println(ddg);
-    	
+
     	} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-        //dfa.definedBy("/java/lang/String.class", targetMethod, ALOAD1)
         return false;
     }
-    //My Test Method
-    public boolean isDataDepence1() {
-    	Graph ddg = new Graph();
-    	DataFlowAnalysis dfa = new DataFlowAnalysis();
-    	try {
-    		System.out.println("Starting dfa definedBy");
-	    	for (Node node : cfg.getNodes()) {
-				AbstractInsnNode abNode = node.getInstruction();
-				//System.out.println("AbstractNode = " + abNode);
-				//Get Written Variables
-				//System.out.println("1");
-				Collection<Variable> definedVariables = dfa.definedBy("/java/lang/String.class", targetMethod, abNode);
-				for (Variable variable : definedVariables) {
-					//System.out.println("Defined Variable = " + variable + " For Abstract " + abNode);
-					//System.out.println("Variables = " + variable.getVariables() + " For Abstract " + abNode);
-					/*for (Variable variable1 : variable.getVariables()) {
-						System.out.println("This " + variable1);
-						System.out.println("Type " + variable1.type);
-					}*/
-					//System.out.println(variable.type);
-									
-				}
-				Node writeNode = new Node(abNode);
-				ddg.addNode(writeNode);
-				//System.out.println("Read Variables");
-				//Get Read Variables
-				Collection<Variable> usedVariables = dfa.usedBy("/java/lang/String.class", targetMethod, abNode);
-				
-				if(!usedVariables.isEmpty()){
-					System.out.println(abNode);
-					System.out.println(usedVariables);
-				}
-
-			}
-    	} catch (AnalyzerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-        //dfa.definedBy("/java/lang/String.class", targetMethod, ALOAD1)
-        return false;
-    }
+    
     
     /**
      * Returns true if a is dependent upon b and false otherwise.
@@ -402,6 +355,7 @@ public class AssignmentSubmission implements Slicer {
     @Override
     public List<AbstractInsnNode> backwardSlice(AbstractInsnNode criterion) {
         //REPLACE THIS METHOD BODY WITH YOUR OWN CODE
+    	
         return null;
     }
     
