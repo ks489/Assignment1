@@ -136,7 +136,7 @@ public class Graph {
         }
         return current;
     }
-
+	
 	private boolean containsTransitiveSuccessors(Node x, Node x2, Node y) {
 		Collection<Node> transitiveSuccessors = getTransitiveSuccessors(x);
         if(transitiveSuccessors.contains(x2) && transitiveSuccessors.contains(y))

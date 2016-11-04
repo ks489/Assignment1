@@ -34,10 +34,12 @@ public class AssignmentSubmission implements Slicer {
 	ClassNode targetClassNode;
 	MethodNode targetMethod;
 	Graph cfg;
+	String targetClassString;
 	
 	public AssignmentSubmission(String targetClass, String methodSignature){
 		targetClassNode = findClassNode(targetClass);
 		targetMethod = findMethodNode(targetClassNode, methodSignature);
+		targetClassString = targetClass;
 		try{
 			cfg = CFGExtractor.getCFG(targetClassNode.name, targetMethod);
 		} catch (AnalyzerException e) {
@@ -89,9 +91,27 @@ public class AssignmentSubmission implements Slicer {
      */
     @Override
     public boolean isDataDepence(AbstractInsnNode a, AbstractInsnNode b) {
-        //REPLACE THIS METHOD BODY WITH YOUR OWN CODE
+        
+    	DataFlowAnalysis dfa = new DataFlowAnalysis();
+    	
+    	DataDependencyComputation ddc = new DataDependencyComputation();
+   
+    	try {
+			Map<Node, List<Variable>> writeMap = ddc.getAllWriteVariables(targetClassString, targetMethod, cfg);
+			Map<Node, List<Variable>> readMap = ddc.getAllReadVariables(targetClassString, targetMethod, cfg);
+			Graph ddg = ddc.getDataDependencyGraph(writeMap, readMap, targetClassString, targetMethod, cfg);
+			
+			//TODO Check Dependency
+			
+		} catch (AnalyzerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
         return false;
     }
+    
+    //This is my test method
     public boolean isDataDepence() {
     	Graph ddg = new Graph();
     	DataFlowAnalysis dfa = new DataFlowAnalysis();
@@ -112,7 +132,7 @@ public class AssignmentSubmission implements Slicer {
 							writeVariableList.add(variable);
 						}
 						writeMap.put(node, writeVariableList);
-						ddg.addNode(node);
+						//ddg.addNode(node);
 					}
 
 					Collection<Variable> usedVariables = dfa.usedBy("/java/lang/String.class", targetMethod, abNode);
@@ -179,96 +199,28 @@ public class AssignmentSubmission implements Slicer {
      */
     @Override
     public boolean isControlDependentUpon(AbstractInsnNode a, AbstractInsnNode b) {
-    	
-    	try {
-    		AddStartNode(cfg);
-			DominanceTreeGenerator dtg = new DominanceTreeGenerator(cfg);
-			Graph postDominatorGraph = dtg.postDominatorTree();
-			
-			
-			System.out.println("manual print");
-			for (Node node : cfg.getNodes()) {
-				for (Node succ: cfg.getSuccessors(node)) {
-					System.out.println(node.toString()+"->"+succ.toString()+"\n");
-				}
-				//if(cfg.isDecisionEdge(node, cfg.getSuccessors(node)))
-				//decisions = new HashMap<DefaultEdge, Boolean>();
-				//graph = new DirectedMultigraph<Node, DefaultEdge>(new ClassBasedEdgeFactory<Node, DefaultEdge>(DefaultEdge.class));
-			}
-			
-			//System.out.println(dtg);
-			//System.out.println(postDominatorGraph);
-		} catch (IOException | AnalyzerException e) {
+    	try{
+    		ControlDependencyComputation cdc = new ControlDependencyComputation();
+        	cdc.AddStartNode(cfg);
+        	
+        	DominanceTreeGenerator dtg = new DominanceTreeGenerator(cfg);
+    		Graph postDominatorGraph = dtg.postDominatorTree();
+        	
+        	Map<Node, Node> branches = cdc.getAllBranches(cfg);
+        	
+        	Graph controlDependencyGraph = cdc.getControlDependencyGraph(postDominatorGraph, branches);
+        	
+        	//TODO check if a control dependent on b
+        	//TODO write method
+        	
+    	}catch (IOException | AnalyzerException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
         return false;
-    }
-    
-    public boolean isControlDependentUpon() {
-    	
-    	try {
-    		AddStartNode(cfg);
-			DominanceTreeGenerator dtg = new DominanceTreeGenerator(cfg);
-			Graph postDominatorGraph = dtg.postDominatorTree();
-			
-			//Get Branches
-			Map<Node, Node> branches = new HashMap <Node, Node>();
-			System.out.println("manual print");
-			for (Node node : cfg.getNodes()) {
-				for (Node succ: cfg.getSuccessors(node)) {
-					//System.out.println(node.toString()+"->"+succ.toString()+"\n");
-					//System.out.println(cfg.isDecisionEdge(node, succ) + " " + node.toString()+"->"+succ.toString()+"\n");
-					if(cfg.isDecisionEdge(node, succ)){
-						//This is a branch
-						branches.put(node, succ);
-					}
-				}
-			}
-			
-			System.out.println("Starting the post dominance");
-			for (Node postDom : postDominatorGraph.getNodes()) { //b
-				for (Node node: postDominatorGraph.getSuccessors(postDom)) { //a
-					//System.out.println(node.toString()+"->"+succ.toString()+"\n");
-					
-					if(branches.containsKey(node)){
-						
-						System.out.println("Contains key");
-						if(branches.get(node) == postDom){
-							System.out.println("The values are equal");
-							System.out.println(postDom.toString()+"->"+node.toString()+"\n");
-							//remove that set
-							branches.remove(node);
-						}
-					}
-				}
-			}
-			
-			System.out.println("Least common ancestor");
-			for(Map.Entry<Node, Node> branch : branches.entrySet()){
-				System.out.println(branch);
-				Node leastCommon = postDominatorGraph.getLeastCommonAncestor(branch.getKey(), branch.getValue());
-				//postDominatorGraph.getTransitiveSuccessors(m)
-				System.out.println(leastCommon);
-				//if(leastCommon == ){
-					
-				//}
-			}
-			
-			//Map<Map<string, string>, Map<string, string>> ControlDependencyMap 
-			
-			//
-			
-			
-			//System.out.println(dtg);
-			//System.out.println(postDominatorGraph);
-		} catch (IOException | AnalyzerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-        return false;
-    }
+    }   
 
+    //My Test Method
     public boolean isControlDependentUpon1() {
     	
     	try {
@@ -289,19 +241,17 @@ public class AssignmentSubmission implements Slicer {
 			
 			System.out.println("Starting the post dominance");
 			
-			System.out.println(postDominatorGraph.getNodes());
+			//System.out.println(postDominatorGraph.getNodes());
 			for (Node postDom : postDominatorGraph.getNodes()) { //b
 				for (Node node: postDominatorGraph.getSuccessors(postDom)) { //a
 					//System.out.println(postDom.toString()+"->"+node.toString()+"\n");
-					
-					
 				}
 			}
 			
 			//Control Dependence Graph
 			Graph cdg = new Graph();
-			System.out.println("Nodes");
-			System.out.println(postDominatorGraph.getNodes());
+			//System.out.println("Nodes");
+			//System.out.println(postDominatorGraph.getNodes());
 			boolean addToGraph = false;
 			for(Map.Entry<Node, Node> branch : branches.entrySet()){
 				Node leastCommonNode;
@@ -312,29 +262,27 @@ public class AssignmentSubmission implements Slicer {
 				}
 				
 				
-				//Node leastCommonNode = postDominatorGraph.getLeastCommonAncestor(branch.getValue(), branch.getKey());
-				String dotString = null;
+				//String dotString = null;
+				
 				for (Node node : postDominatorGraph.getNodes()) {
 					for (Node succ: postDominatorGraph.getPredecessors(node)) {
-						dotString+=node.toString()+"->"+succ.toString()+"\n";						
-						//From the b root of the branch set
+						//dotString+=node.toString()+"->"+succ.toString()+"\n";
+						
+						//From the b root of the branch set all the way to common ancestor
 						if(node.equals(branch.getValue())){
 							addToGraph = false;
 						}else if(node.equals(leastCommonNode)){
 							addToGraph = true;
 						}
-						if(addToGraph){
-							//if(leastCommonNode.equals(branch.getKey())){
-								
-							//}
+						
+						if(addToGraph){							
 							cdg.addNode(node);
 							cdg.addNode(succ);
 							cdg.addEdge(node, succ);
-						}
-						
+						}						
 					}
 				}
-				System.out.println(dotString);
+				//System.out.println(dotString);
 			}
 			System.out.println("Control Dependency Graph");
 			System.out.println(cdg);
