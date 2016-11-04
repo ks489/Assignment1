@@ -92,14 +92,21 @@ public class AssignmentSubmission implements Slicer {
     @Override
     public boolean isDataDepence(AbstractInsnNode a, AbstractInsnNode b) {
         
-    	DataFlowAnalysis dfa = new DataFlowAnalysis();
+    	DataFlowAnalysis dfa = new DataFlowAnalysis();    	
     	
+    	//Class for computing the data dependency graph and helper functions
     	DataDependencyComputation ddc = new DataDependencyComputation();
-   
     	try {
+    		//Get all defined variables for a specific Node instruction
 			Map<Node, List<Variable>> writeMap = ddc.getAllWriteVariables(targetClassString, targetMethod, cfg);
+			//Get all used by variables for a specific Node instruction
 			Map<Node, List<Variable>> readMap = ddc.getAllReadVariables(targetClassString, targetMethod, cfg);
+			
+			//Get complete Data Dependency Graph
 			Graph ddg = ddc.getDataDependencyGraph(writeMap, readMap, targetClassString, targetMethod, cfg);
+			
+			//Query the complete Data Dependency Graph between two abstract instruction nodes
+			return ddc.isDataDependent(a, b, ddg);
 			
 			//TODO Check Dependency
 			

@@ -15,10 +15,20 @@ import util.cfg.Node;
 
 public class DataDependencyComputation {
 	
+	/**
+     * Returns a Graph that represents a full Data Dependency Graph.
+     *
+     *
+     * @param Target Class
+     * @param Target Method
+     * @param Control Flow Graph
+     * @return Map<Node, List<Variable>>
+     */
 	public Graph getDataDependencyGraph(Map<Node, List<Variable>> writeMap, Map<Node, List<Variable>> readMap, String targetClass, MethodNode targetMethod, Graph cfg){
 		Graph ddg = new Graph();
     	try {
     		DataFlowAnalysis dfa = new DataFlowAnalysis();
+    		
 			for (Node writeNode : writeMap.keySet()) {
 				for (Node readNode : cfg.getNodes()) {
 					AbstractInsnNode abNode = readNode.getInstruction();
@@ -55,6 +65,15 @@ public class DataDependencyComputation {
         return ddg;
 	}
 	
+	/**
+     * Returns a map with the node and ALL read variables for that particular instruction
+     *
+     *
+     * @param Target Class
+     * @param Target Method
+     * @param Control Flow Graph
+     * @return Map<Node, List<Variable>>
+     */
 	public Map<Node, List<Variable>> getAllReadVariables(String targetClass, MethodNode targetMethod, Graph cfg) throws AnalyzerException{
 		Map<Node, List<Variable>> writeMap = new HashMap<Node, List<Variable>>();
 		DataFlowAnalysis dfa = new DataFlowAnalysis();
@@ -76,6 +95,15 @@ public class DataDependencyComputation {
 		return writeMap;
 	}
 	
+	/**
+     * Returns a map with the node and ALL write variables for that particular instruction
+     *
+     *
+     * @param Target Class
+     * @param Target Method
+     * @param Control Flow Graph
+     * @return Map<Node, List<Variable>>
+     */
 	public Map<Node, List<Variable>> getAllWriteVariables(String targetClass, MethodNode targetMethod, Graph cfg) throws AnalyzerException{
 		Map<Node, List<Variable>> readMap = new HashMap<Node, List<Variable>>();
 		DataFlowAnalysis dfa = new DataFlowAnalysis();
@@ -96,5 +124,25 @@ public class DataDependencyComputation {
 			}				
 		}
 		return readMap;
+	}
+	
+	/**
+     * Checks to see if node a is data dependent on node b. If they are data dependent then return true
+     *
+     *
+     * @param AbstractInsnNode a
+     * @param AbstractInsnNode b
+     * @param Data Dependent Graph
+     * @return Boolean
+     */
+	public boolean isDataDependent(AbstractInsnNode a, AbstractInsnNode b, Graph ddg){
+		for (Node node : ddg.getNodes()) {
+			for (Node succNode : ddg.getSuccessors(node)) {
+				if(node.getInstruction().equals(b) && succNode.getInstruction().equals(a)){
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 }
