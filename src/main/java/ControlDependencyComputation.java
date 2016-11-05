@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 
 import util.DominanceTreeGenerator;
@@ -10,6 +11,14 @@ import util.cfg.Node;
 
 public class ControlDependencyComputation {
 	
+	/**
+     * Returns a Graph that represents a full Control Dependency Graph.
+     *
+     *
+     * @param Post Dominator Graph
+     * @param Map of branches in the flow graph
+     * @return A full Control Dependency Graph
+     */
 	public Graph getControlDependencyGraph(Graph postDominatorGraph, Map<Node, Node> branches){
 		Graph cdg = new Graph();
 
@@ -45,6 +54,10 @@ public class ControlDependencyComputation {
 
 	}
 	
+	/**
+     * Adds a start node that is connected to the entry and exit nodes
+     *
+     */
 	public void AddStartNode(Graph graph){
 		Node node = new Node("start");    	
     	graph.addNode(node);
@@ -52,6 +65,13 @@ public class ControlDependencyComputation {
     	graph.addEdge(node, graph.getExit());
 	}
 	
+	/**
+     * Returns a map of all branches from the Control Flow Graph 
+     *
+     *
+     * @param Control Flow Graph
+     * @return A map of branches
+     */
 	public Map<Node, Node> getAllBranches(Graph cfg){
 		Map<Node, Node> branches = new HashMap <Node, Node>();
 		for (Node node : cfg.getNodes()) {
@@ -62,5 +82,23 @@ public class ControlDependencyComputation {
 			}
 		}
 		return branches;
+	}
+	
+	/**
+     * Returns a map of all branches from the Control Flow Graph 
+     *
+     *
+     * @param Control Flow Graph
+     * @return A map of branches
+     */
+	public boolean isDataDependent(AbstractInsnNode a, AbstractInsnNode b, Graph cdg){
+		for (Node node : cdg.getNodes()) {
+			for (Node succNode : cdg.getSuccessors(node)) {
+				if(node.getInstruction().equals(b) && succNode.getInstruction().equals(a)){
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 }

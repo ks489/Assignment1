@@ -22,26 +22,27 @@ public class DataDependencyComputation {
      * @param Target Class
      * @param Target Method
      * @param Control Flow Graph
-     * @return Map<Node, List<Variable>>
+     * @return A Data Dependency Graph
      */
 	public Graph getDataDependencyGraph(Map<Node, List<Variable>> writeMap, Map<Node, List<Variable>> readMap, String targetClass, MethodNode targetMethod, Graph cfg){
 		Graph ddg = new Graph();
     	try {
     		DataFlowAnalysis dfa = new DataFlowAnalysis();
     		
+    		//run through all write nodes
 			for (Node writeNode : writeMap.keySet()) {
 				for (Node readNode : cfg.getNodes()) {
 					AbstractInsnNode abNode = readNode.getInstruction();
 					if(abNode != null){
+						//Get the read variables for that node
 						Collection<Variable> usedVariables = dfa.usedBy("/java/lang/String.class", targetMethod, abNode);
 						
 						if(!usedVariables.isEmpty()){
-
-							List<Variable> readVariableList = new ArrayList<Variable>();
+							//Run through all the read variables
 							for (Variable readVariable : usedVariables) {
 								List<Variable> writeList = writeMap.get(writeNode);
 								for (Variable writeVariable : writeList) {
-									
+									//if the write variable and the read variable are the same then there is a data dependency
 									if(writeVariable.equals(readVariable)){
 										if(!writeNode.equals(readNode)){
 											ddg.addNode(writeNode);

@@ -117,82 +117,7 @@ public class AssignmentSubmission implements Slicer {
     	
         return false;
     }
-    
-    //This is my test method
-    public boolean isDataDepence() {
-    	Graph ddg = new Graph();
-    	DataFlowAnalysis dfa = new DataFlowAnalysis();
-    	
-    	Map<Node, List<Variable>> writeMap = new HashMap<Node, List<Variable>>();
-    	Map<Node, List<Variable>> readMap = new HashMap<Node, List<Variable>>();
-    	
-    	try {
-    		System.out.println("Starting dfa definedBy");
-	    	for (Node node : cfg.getNodes()) {
-				AbstractInsnNode abNode = node.getInstruction();
-				if(abNode != null){
-					Collection<Variable> definedVariables = dfa.definedBy("/java/lang/String.class", targetMethod, abNode);
-					
-					if(!definedVariables.isEmpty()){
-						List<Variable> writeVariableList = new ArrayList<Variable>();
-						for (Variable variable : definedVariables) {
-							writeVariableList.add(variable);
-						}
-						writeMap.put(node, writeVariableList);
-						//ddg.addNode(node);
-					}
 
-					Collection<Variable> usedVariables = dfa.usedBy("/java/lang/String.class", targetMethod, abNode);
-					
-					if(!usedVariables.isEmpty()){
-
-						List<Variable> readVariableList = new ArrayList<Variable>();
-						for (Variable variable : usedVariables) {
-							readVariableList.add(variable);
-						}
-						readMap.put(node, readVariableList);
-					}
-				}				
-			}
-	    	//System.out.println(writeMap);
-			//System.out.println(readMap);
-			for (Node writeNode : writeMap.keySet()) {
-				for (Node readNode : cfg.getNodes()) {
-					AbstractInsnNode abNode = readNode.getInstruction();
-					if(abNode != null){
-						Collection<Variable> usedVariables = dfa.usedBy("/java/lang/String.class", targetMethod, abNode);
-						
-						if(!usedVariables.isEmpty()){
-
-							List<Variable> readVariableList = new ArrayList<Variable>();
-							for (Variable readVariable : usedVariables) {
-								List<Variable> writeList = writeMap.get(writeNode);
-								for (Variable writeVariable : writeList) {
-									
-									if(writeVariable.equals(readVariable)){
-										if(!writeNode.equals(readNode)){
-											ddg.addNode(writeNode);
-											ddg.addNode(readNode);
-											ddg.addEdge(writeNode, readNode);
-										}										
-									}
-								}
-							}							
-						}
-					}					
-				}				
-			}
-			
-			System.out.println(ddg);
-
-    	} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-        return false;
-    }
-    
-    
     /**
      * Returns true if a is dependent upon b and false otherwise.
      *
@@ -208,13 +133,16 @@ public class AssignmentSubmission implements Slicer {
     public boolean isControlDependentUpon(AbstractInsnNode a, AbstractInsnNode b) {
     	try{
     		ControlDependencyComputation cdc = new ControlDependencyComputation();
+    		//Add start node linking to the entry and exit nodes
         	cdc.AddStartNode(cfg);
-        	
+        	//Generate the post dominator graph
         	DominanceTreeGenerator dtg = new DominanceTreeGenerator(cfg);
     		Graph postDominatorGraph = dtg.postDominatorTree();
         	
+    		//Get all branches from the control flow graph where there is a decision but b does not post dominate a
         	Map<Node, Node> branches = cdc.getAllBranches(cfg);
         	
+        	//Compute the full control dependency graph
         	Graph controlDependencyGraph = cdc.getControlDependencyGraph(postDominatorGraph, branches);
         	
         	//TODO check if a control dependent on b
@@ -227,6 +155,75 @@ public class AssignmentSubmission implements Slicer {
         return false;
     }   
 
+    
+
+    /**
+     * Should return a backward slice on the criterion statement (for all variables).
+     * @param criterion
+     * @return
+     */
+    @Override
+    public List<AbstractInsnNode> backwardSlice(AbstractInsnNode criterion) {
+    	DataFlowAnalysis dfa = new DataFlowAnalysis();    	
+    	
+    	//Class for computing the data dependency graph and helper functions
+    	DataDependencyComputation ddc = new DataDependencyComputation();
+    	try {
+    		//Get all defined variables for a specific Node instruction
+			Map<Node, List<Variable>> writeMap = ddc.getAllWriteVariables(targetClassString, targetMethod, cfg);
+			//Get all used by variables for a specific Node instruction
+			Map<Node, List<Variable>> readMap = ddc.getAllReadVariables(targetClassString, targetMethod, cfg);
+			
+			//Get complete Data Dependency Graph
+			Graph ddg = ddc.getDataDependencyGraph(writeMap, readMap, targetClassString, targetMethod, cfg);
+			
+
+			ControlDependencyComputation cdc = new ControlDependencyComputation();
+    		//Add start node linking to the entry and exit nodes
+        	cdc.AddStartNode(cfg);
+        	//Generate the post dominator graph
+        	DominanceTreeGenerator dtg = new DominanceTreeGenerator(cfg);
+    		Graph postDominatorGraph = dtg.postDominatorTree();
+        	
+    		//Get all branches from the control flow graph where there is a decision but b does not post dominate a
+        	Map<Node, Node> branches = cdc.getAllBranches(cfg);
+        	
+        	//Compute the full control dependency graph
+        	Graph controlDependencyGraph = cdc.getControlDependencyGraph(postDominatorGraph, branches);
+        	
+        	ProgramDependencyComputation pdc = new ProgramDependencyComputation();
+        	
+        	//Get program dependency graph
+        	Graph ProgramDependencyGraph = pdc.getProgramDependencyGraph(postDominatorGraph,  controlDependencyGraph);
+        	
+        	//Get program dependency slice with a list of instructions
+        	return pdc.getAllInstructionsOfSlice(ProgramDependencyGraph, criterion);
+			
+		} catch (AnalyzerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    	
+    	ProgramDependencyComputation pdc = new ProgramDependencyComputation();
+    	
+        return null;
+    }
+    
+    //Custom internal method helpers
+    //Adding augmented control flow start node
+    private void AddStartNode(Graph graph){
+    	Node node = new Node("start");    	
+    	graph.addNode(node);
+    	graph.addEdge(node, graph.getEntry());
+    	graph.addEdge(node, graph.getExit());
+    	//graph.addEdge(graph.getEntry(), node);
+    	//graph.addEdge(graph.getExit(), node);
+    }
+    
     //My Test Method
     public boolean isControlDependentUpon1() {
     	
@@ -301,27 +298,78 @@ public class AssignmentSubmission implements Slicer {
 		}
         return false;
     }
-
-    /**
-     * Should return a backward slice on the criterion statement (for all variables).
-     * @param criterion
-     * @return
-     */
-    @Override
-    public List<AbstractInsnNode> backwardSlice(AbstractInsnNode criterion) {
-        //REPLACE THIS METHOD BODY WITH YOUR OWN CODE
-    	
-        return null;
-    }
     
-    //Custom internal method helpers
-    //Adding augmented control flow start node
-    private void AddStartNode(Graph graph){
-    	Node node = new Node("start");    	
-    	graph.addNode(node);
-    	graph.addEdge(node, graph.getEntry());
-    	graph.addEdge(node, graph.getExit());
-    	//graph.addEdge(graph.getEntry(), node);
-    	//graph.addEdge(graph.getExit(), node);
+  //This is my test method
+    public boolean isDataDepence() {
+    	Graph ddg = new Graph();
+    	DataFlowAnalysis dfa = new DataFlowAnalysis();
+    	
+    	Map<Node, List<Variable>> writeMap = new HashMap<Node, List<Variable>>();
+    	Map<Node, List<Variable>> readMap = new HashMap<Node, List<Variable>>();
+    	
+    	try {
+    		System.out.println("Starting dfa definedBy");
+	    	for (Node node : cfg.getNodes()) {
+				AbstractInsnNode abNode = node.getInstruction();
+				if(abNode != null){
+					Collection<Variable> definedVariables = dfa.definedBy("/java/lang/String.class", targetMethod, abNode);
+					
+					if(!definedVariables.isEmpty()){
+						List<Variable> writeVariableList = new ArrayList<Variable>();
+						for (Variable variable : definedVariables) {
+							writeVariableList.add(variable);
+						}
+						writeMap.put(node, writeVariableList);
+						//ddg.addNode(node);
+					}
+
+					Collection<Variable> usedVariables = dfa.usedBy("/java/lang/String.class", targetMethod, abNode);
+					
+					if(!usedVariables.isEmpty()){
+
+						List<Variable> readVariableList = new ArrayList<Variable>();
+						for (Variable variable : usedVariables) {
+							readVariableList.add(variable);
+						}
+						readMap.put(node, readVariableList);
+					}
+				}				
+			}
+	    	//System.out.println(writeMap);
+			//System.out.println(readMap);
+			for (Node writeNode : writeMap.keySet()) {
+				for (Node readNode : cfg.getNodes()) {
+					AbstractInsnNode abNode = readNode.getInstruction();
+					if(abNode != null){
+						Collection<Variable> usedVariables = dfa.usedBy("/java/lang/String.class", targetMethod, abNode);
+						
+						if(!usedVariables.isEmpty()){
+
+							List<Variable> readVariableList = new ArrayList<Variable>();
+							for (Variable readVariable : usedVariables) {
+								List<Variable> writeList = writeMap.get(writeNode);
+								for (Variable writeVariable : writeList) {
+									
+									if(writeVariable.equals(readVariable)){
+										if(!writeNode.equals(readNode)){
+											ddg.addNode(writeNode);
+											ddg.addNode(readNode);
+											ddg.addEdge(writeNode, readNode);
+										}										
+									}
+								}
+							}							
+						}
+					}					
+				}				
+			}
+			
+			System.out.println(ddg);
+
+    	} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        return false;
     }
 }

@@ -57,7 +57,6 @@ public class Graph {
 		}
 	}
 
-
 	public Set<Node> getPredecessors(Node a){
 		Set<Node> preds = new HashSet<Node>();
 		for(DefaultEdge de : graph.incomingEdgesOf(a)){
